@@ -26,7 +26,7 @@ class _NewItem extends State<NewItem> {
         'flutter-perp-d8ae6-default-rtdb.firebaseio.com',
         'shopping-list.json',
       );
-      final response = await http.post(
+      /*final response =*/await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
