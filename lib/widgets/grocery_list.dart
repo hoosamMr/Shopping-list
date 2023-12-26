@@ -15,7 +15,8 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
    List<GroceryItem> _grosreryItems = [];
-
+   var _isLoading = true;
+   String? _error;
   @override
   void initState() {
     super.initState();
@@ -28,6 +29,11 @@ class _GroceryListState extends State<GroceryList> {
       'shopping-list.json',
     );
     final response = await http.get(url);
+    if(response.statusCode >= 400){
+      setState(() {
+        _error = 'Faild to fetch data, please try again later.';
+      });
+    }
     final Map<String, dynamic> listData =
         json.decode(response.body);
     final List<GroceryItem> loadedItems = [];
@@ -45,23 +51,39 @@ class _GroceryListState extends State<GroceryList> {
     }
     setState(() {
        _grosreryItems = loadedItems;
+       _isLoading = false;
     });
    
   }
 
   void _addItem() async {
-    await Navigator.of(context).push<GroceryItem>(
+    final newAitem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
         builder: (ctx) => const NewItem(),
       ),
     );
-    _loadItem();
+   if(newAitem == null)return;
+   setState(() {
+     _grosreryItems.add(newAitem);
+   });
   }
 
-  void _removeItem(GroceryItem item) {
-    setState(() {
+  void _removeItem(GroceryItem item) async{
+    final index = _grosreryItems.indexOf(item);
+     setState(() {
       _grosreryItems.remove(item);
     });
+     final url = Uri.https(
+      'flutter-perp-d8ae6-default-rtdb.firebaseio.com',
+      'shopping-list/${item.id}.json',
+    );
+    final response = await http.delete(url);
+    if(response.statusCode>= 400){
+       setState(() {
+      _grosreryItems.insert(index,item);
+    });
+    }
+   
   }
 
   @override
@@ -69,6 +91,9 @@ class _GroceryListState extends State<GroceryList> {
     Widget content = const Center(
       child: Text('No itrms added yet!.'),
     );
+    if(_isLoading){
+      content = const Center(child: CircularProgressIndicator(),);
+    }
     if (_grosreryItems.isNotEmpty) {
       content = ListView.builder(
         itemCount: _grosreryItems.length,
@@ -88,6 +113,10 @@ class _GroceryListState extends State<GroceryList> {
           ),
         ),
       );
+    }
+    if(_error != null){
+      content =  Center(
+      child: Text(_error!));
     }
     return Scaffold(
       appBar: AppBar(
